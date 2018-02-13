@@ -41,7 +41,7 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     tanh_aff = -1 + 2./(exp_aff+1)
 
     next_h = tanh_aff
-    cache = (affined_wh,cache_affined_wh,affined_wh,cache_affined_wx,sum_affined,exp_aff)
+    cache = (affined_wh,cache_affined_wh,affined_wx,cache_affined_wx,sum_affined,exp_aff)
     ##############################################################################
     # Implement a single forward step for the vanilla RNN. Store the next  #
     # hidden state and any values you need for the backward pass in the next_h   #
@@ -71,7 +71,7 @@ def rnn_step_backward(dnext_h, cache):
     """
     dx, dprev_h, dWx, dWh, db = None, None, None, None, None
 
-    affined_wh, cache_affined_wh, affined_wh, cache_affined_wx, sum_affined, exp_aff = cache
+    affined_wh, cache_affined_wh, affined_wx, cache_affined_wx, sum_affined, exp_aff = cache
     prev_h,Wh = cache_affined_wh
     x,Wx = cache_affined_wx
     dexp = (-2 * (1+exp_aff)**(-2)) * dnext_h
@@ -121,16 +121,24 @@ def rnn_forward(x, h0, Wx, Wh, b):
     - h: Hidden states for the entire timeseries, of shape (N, T, H).
     - cache: Values needed in the backward pass
     """
-    h, cache = None, None
+    h, cache = None,[]
+    N,T,D = x.shape
+    x_li = np.transpose(x,axes=(1,0,2))
+    h_li = []
+    tmp_h = h0
+    for i in range(T):
+        tmp_h,tmp_cache = rnn_step_forward(x_li[i],Wh=Wh,Wx=Wx,prev_h=tmp_h,b=b)
+        h_li.append(tmp_h)
+        cache.append(tmp_cache)
     ##############################################################################
-    # TODO: Implement forward pass for a vanilla RNN running on a sequence of    #
+    # Implement forward pass for a vanilla RNN running on a sequence of    #
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    pass
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
+    h = np.array(h_li).transpose((1,0,2))
     return h, cache
 
 
@@ -149,12 +157,33 @@ def rnn_backward(dh, cache):
     - db: Gradient of biases, of shape (H,)
     """
     dx, dh0, dWx, dWh, db = None, None, None, None, None
+    N,T,H = dh.shape
+    D,H = cache[-1][3][1].shape
+
+    dh_li = np.transpose(dh,axes=(1,0,2))
+    dh0 = np.ones_like(dh_li[0])
+    dx_li = np.zeros((T,N,D))
+    dWh = np.zeros((H,H))
+    dWx = np.zeros((D,H))
+    db = np.zeros((H,))
+
+    for i in range(1,T+1):
+        tmp_dx, tmp_dprev_h, tmp_dWx, tmp_dWh, tmp_db = rnn_step_backward(dnext_h=dh_li[-i],cache= cache[-i])
+        dx_li[T-i,:,:] = tmp_dx
+        dWh += tmp_dWh
+        dWx += tmp_dWx
+        dh0 = tmp_dprev_h
+    dx=np.transpose(dx_li,axes=(1,0,2))
+    print('dW:',dWx, ' \n\n\n\n', dWh)
+    print('db:',db)
+    print('dx:',dx)
+
     ##############################################################################
     # TODO: Implement the backward pass for a vanilla RNN running an entire      #
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
-    pass
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
