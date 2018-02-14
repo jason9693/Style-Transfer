@@ -115,7 +115,44 @@ class CaptioningRNN(object):
         # Weight and bias for the hidden-to-vocab transformation.
         W_vocab, b_vocab = self.params['W_vocab'], self.params['b_vocab']
 
-        loss, grads = 0.0, {}
+        loss, grads = 0.0, {
+            'W_proj':None,
+            'b_proj':None,
+            'W_embed':None,
+            'Wx':None,
+            'Wh':None,
+            'b':None,
+            'W_vocab':None,
+            'b_vocab':None
+        }
+
+        affined_proj,cache = affine_forward(x=features,w=W_proj,b=b_proj)
+        word_embeded,cache_word = word_embedding_forward(x=captions_in,W=W_embed)
+        forwarded = None
+        cache_rnn = None
+        if self.cell_type == 'rnn':
+            forwarded,cache_rnn = rnn_forward(Wh=Wh,Wx=Wx,b=b,h0=affined_proj,x=word_embeded)
+
+        affined_forwarded,cache_embed = temporal_affine_forward(x=forwarded,w=W_vocab,b=b_vocab)
+        loss,d_sofmax = temporal_softmax_loss(x=affined_forwarded,y=captions_out,mask=mask)
+
+        d_affind_forwarded,dW_vocab,db_vocab = affine_backward(d_sofmax,cache_embed)
+        grads['W_vocab'] = dW_vocab
+        grads['b_vocab'] = db_vocab
+        if self.cell_type == 'rnn':
+            dWh,dWx,db,daffined_proj,dword_embeded = rnn_backward(d_affind_forwarded,cache_rnn)
+            grads['Wh'] = dWh
+            grads['Wx'] = dWx
+            grads['b'] = db
+            dcaption_in,dW_embed = word_embedding_backward(dword_embeded,cache_word)
+            grads['W_embed'] = dW_embed
+            dfeature,dW_proj,db_proj = affine_backward(daffined_proj,cache)
+            grads['W_proj'] = dW_proj
+            grads['b_proj']= db_proj
+
+
+
+
         ############################################################################
         # TODO: Implement the forward and backward passes for the CaptioningRNN.   #
         # In the forward pass you will need to do the following:                   #
