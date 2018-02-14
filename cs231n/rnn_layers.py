@@ -42,7 +42,7 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     tanh_aff = (np.exp(c)-exp_aff)/(exp_aff+np.exp(c))
 
     next_h = tanh_aff
-    cache = (affined_wh,cache_affined_wh,affined_wx,cache_affined_wx,sum_affined,exp_aff)
+    cache = (affined_wh,cache_affined_wh,affined_wx,cache_affined_wx,sum_affined,exp_aff,tanh_aff)
     ##############################################################################
     # Implement a single forward step for the vanilla RNN. Store the next  #
     # hidden state and any values you need for the backward pass in the next_h   #
@@ -72,14 +72,14 @@ def rnn_step_backward(dnext_h, cache):
     """
     dx, dprev_h, dWx, dWh, db = None, None, None, None, None
 
-    affined_wh, cache_affined_wh, affined_wx, cache_affined_wx, sum_affined, exp_aff = cache
+    affined_wh, cache_affined_wh, affined_wx, cache_affined_wx, sum_affined, exp_aff,tan_aff = cache
 
     prev_h,Wh = cache_affined_wh
     x,Wx = cache_affined_wx
     #dexp = (-2 * (1+exp_aff)**(-2)) * dnext_h
 
-    ex = np.exp(sum_affined*(-2) - 1.5)
-    dsum = 4 * (np.exp(-1.5)) * ((np.exp(-1.5) + ex)**-2)*ex * dnext_h
+    dsum = (1- tan_aff**2 ) * dnext_h
+
     db = np.sum(dsum,axis=0)
 
     #daffined_wh = dsum
