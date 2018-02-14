@@ -136,15 +136,16 @@ class CaptioningRNN(object):
         affined_forwarded,cache_embed = temporal_affine_forward(x=forwarded,w=W_vocab,b=b_vocab)
         loss,d_sofmax = temporal_softmax_loss(x=affined_forwarded,y=captions_out,mask=mask)
 
-        d_affind_forwarded,dW_vocab,db_vocab = affine_backward(d_sofmax,cache_embed)
+        d_affind_forwarded,dW_vocab,db_vocab = temporal_affine_backward(d_sofmax,cache_embed)
         grads['W_vocab'] = dW_vocab
         grads['b_vocab'] = db_vocab
         if self.cell_type == 'rnn':
-            dWh,dWx,db,daffined_proj,dword_embeded = rnn_backward(d_affind_forwarded,cache_rnn)
+
+            dword_embeded,daffined_proj,dWx,dWh,db = rnn_backward(d_affind_forwarded,cache_rnn)
             grads['Wh'] = dWh
             grads['Wx'] = dWx
             grads['b'] = db
-            dcaption_in,dW_embed = word_embedding_backward(dword_embeded,cache_word)
+            dW_embed = word_embedding_backward(dword_embeded,cache_word)
             grads['W_embed'] = dW_embed
             dfeature,dW_proj,db_proj = affine_backward(daffined_proj,cache)
             grads['W_proj'] = dW_proj

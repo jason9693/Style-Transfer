@@ -29,7 +29,7 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
     - cache: Tuple of values needed for the backward pass.
     """
     next_h, cache = None, None
-
+    c = -100
     affined_wh = np.matmul(prev_h,Wh)
     cache_affined_wh = (prev_h,Wh)
     affined_wx = np.matmul(x,Wx)
@@ -37,8 +37,9 @@ def rnn_step_forward(x, prev_h, Wx, Wh, b):
 
     sum_affined = affined_wh + affined_wx + b
 
-    exp_aff = np.exp(sum_affined*(-2))
-    tanh_aff = -1 + 2./(exp_aff+1)
+    jisu = sum_affined*(-2) + c
+    exp_aff = np.exp(jisu)
+    tanh_aff = (np.exp(c)-exp_aff)/(exp_aff+np.exp(c))
 
     next_h = tanh_aff
     cache = (affined_wh,cache_affined_wh,affined_wx,cache_affined_wx,sum_affined,exp_aff)
@@ -72,19 +73,22 @@ def rnn_step_backward(dnext_h, cache):
     dx, dprev_h, dWx, dWh, db = None, None, None, None, None
 
     affined_wh, cache_affined_wh, affined_wx, cache_affined_wx, sum_affined, exp_aff = cache
+
     prev_h,Wh = cache_affined_wh
     x,Wx = cache_affined_wx
-    dexp = (-2 * (1+exp_aff)**(-2)) * dnext_h
-    dsum = -2*exp_aff * dexp
+    #dexp = (-2 * (1+exp_aff)**(-2)) * dnext_h
+
+    ex = np.exp(sum_affined*(-2) - 1.5)
+    dsum = 4 * (np.exp(-1.5)) * ((np.exp(-1.5) + ex)**-2)*ex * dnext_h
     db = np.sum(dsum,axis=0)
 
-    daffined_wh = dsum
-    dprev_h = np.matmul(daffined_wh,Wh.T)
-    dWh = np.matmul(prev_h.T,daffined_wh)
+    #daffined_wh = dsum
+    dprev_h = np.matmul(dsum,Wh.T)
+    dWh = np.matmul(prev_h.T,dsum)
 
-    daffined_wx = dsum
-    dx = np.matmul(daffined_wx,Wx.T)
-    dWx = np.matmul(x.T,daffined_wx)
+    #daffined_wx = dsum
+    dx = np.matmul(dsum,Wx.T)
+    dWx = np.matmul(x.T,dsum)
 
 
 
@@ -183,8 +187,8 @@ def rnn_backward(dh, cache):
     # Implement the backward pass for a vanilla RNN running an entire      #
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
-    # key : rnn_step_backward에 집어넣을 dh는 메소드의 인풋으로 받은 dh 뿐만 아니라, 이전 상위 #
-    # prop에서 획득한 dh(tmp_prev_h) 를 더하여 넣어주여야 한다.                           #
+    # key : rnn_step_backward에 집어넣을 dh는 메소드의 인풋으로 받은 dh 뿐만 아니라, 이전단계의 flow #
+    # (윗단계prop)에서 획득한 dh(tmp_prev_h) 를 더하여 넣어주여야 한다.                     #
     ##############################################################################
 
     ##############################################################################
@@ -209,12 +213,18 @@ def word_embedding_forward(x, W):
     - cache: Values needed for the backward pass
     """
     out, cache = None, None
+    N,T = x.shape
+    V,D = W.shape
+    out = np.zeros((N,T,D))
+
+    out = W[x]
+    cache = (x,W)
     ##############################################################################
-    # TODO: Implement the forward pass for word embeddings.                      #
+    # Implement the forward pass for word embeddings.                      #
     #                                                                            #
     # HINT: This can be done in one line using NumPy's array indexing.           #
     ##############################################################################
-    pass
+
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -236,14 +246,16 @@ def word_embedding_backward(dout, cache):
     Returns:
     - dW: Gradient of word embedding matrix, of shape (V, D).
     """
-    dW = None
+    x, W = cache
+    N,T,D = dout.shape
+    dW = np.zeros_like(W)
+    np.add.at(dW,x.reshape(N*T),dout.reshape(N*T,D))
     ##############################################################################
-    # TODO: Implement the backward pass for word embeddings.                     #
+    # Implement the backward pass for word embeddings.                     #
     #                                                                            #
     # Note that Words can appear more than once in a sequence.                   #
     # HINT: Look up the function np.add.at                                       #
     ##############################################################################
-    pass
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
