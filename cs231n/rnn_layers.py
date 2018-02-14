@@ -167,21 +167,24 @@ def rnn_backward(dh, cache):
     dWx = np.zeros((D,H))
     db = np.zeros((H,))
 
+    tmp_dprev_h = np.zeros_like(dh_li[-1])
     for i in range(1,T+1):
-        tmp_dx, tmp_dprev_h, tmp_dWx, tmp_dWh, tmp_db = rnn_step_backward(dnext_h=dh_li[-i],cache= cache[-i])
+        tmp_dprev_h += dh_li[-i]
+        tmp_dx, tmp_dprev_h, tmp_dWx, tmp_dWh, tmp_db = rnn_step_backward(dnext_h=tmp_dprev_h,cache= cache[-i])
         dx_li[T-i,:,:] = tmp_dx
         dWh += tmp_dWh
         dWx += tmp_dWx
         dh0 = tmp_dprev_h
+        db+= tmp_db
     dx=np.transpose(dx_li,axes=(1,0,2))
-    print('dW:',dWx, ' \n\n\n\n', dWh)
-    print('db:',db)
-    print('dx:',dx)
+   
 
     ##############################################################################
-    # TODO: Implement the backward pass for a vanilla RNN running an entire      #
+    # Implement the backward pass for a vanilla RNN running an entire      #
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
+    # key : rnn_step_backward에 집어넣을 dh는 메소드의 인풋으로 받은 dh 뿐만 아니라, 이전 상위 #
+    # prop에서 획득한 dh(tmp_prev_h) 를 더하여 넣어주여야 한다.                           #
     ##############################################################################
 
     ##############################################################################
