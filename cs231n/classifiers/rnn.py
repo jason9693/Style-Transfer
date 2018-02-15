@@ -46,6 +46,7 @@ class CaptioningRNN(object):
 
         self._null = word_to_idx['<NULL>']
         self._start = word_to_idx.get('<START>', None)
+        print(self._start)
         self._end = word_to_idx.get('<END>', None)
 
         # Initialize word vectors
@@ -215,6 +216,19 @@ class CaptioningRNN(object):
         W_embed = self.params['W_embed']
         Wx, Wh, b = self.params['Wx'], self.params['Wh'], self.params['b']
         W_vocab, b_vocab = self.params['W_vocab'], self.params['b_vocab']
+        cur_word_idx = [self._start] *N
+        affined,_ = affine_forward(x=features,w=W_proj,b=b_proj)
+        for i in range(max_length):
+            if self.cell_type == 'rnn':
+                embeded = W_embed[cur_word_idx]
+                next_h,_ = rnn_step_forward(embeded,Wh=Wh,Wx=Wx,b=b,prev_h=affined)
+                y,_ = affine_forward(x=next_h,w=W_vocab,b=b_vocab)
+                cur_word_idx = list(np.argmax(y,axis=1))
+                captions[:,i] = cur_word_idx
+                affined = next_h
+
+            else: return
+
 
         ###########################################################################
         # TODO: Implement test-time sampling for the model. You will need to      #
