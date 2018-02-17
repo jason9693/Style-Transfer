@@ -240,7 +240,7 @@ class CaptioningRNN(object):
             affined = next_h
 
         ###########################################################################
-        # TODO: Implement test-time sampling for the model. You will need to      #
+        # Implement test-time sampling for the model. You will need to      #
         # initialize the hidden state of the RNN by applying the learned affine   #
         # transform to the input image features. The first word that you feed to  #
         # the RNN should be the <START> token; its value is stored in the         #
